@@ -1,0 +1,369 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heródoto: El Tesoro de Rampsinito | Aventura Griega</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ==========================================================================
+           VARIABLES GLOBALES Y CONFIGURACIÓN
+           ========================================================================== */
+        :root {
+            --egypt-gold: #D4AF37;
+            --egypt-sand: #E5C287;
+            --egypt-dark: #1A1A1A;
+            --egypt-blue: #0F2537;
+            --egypt-red: #8B0000;
+            --greek-accent: #4FC3F7;
+        }
+
+        body {
+            background-color: var(--egypt-dark);
+            color: var(--egypt-sand);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; 
+            user-select: none;
+        }
+
+        h1, h2, h3, .title-font {
+            font-family: 'Cinzel', serif;
+        }
+
+        .text-font {
+            font-family: 'Cormorant Garamond', serif;
+        }
+
+        /* ==========================================================================
+           ANIMACIONES Y EFECTOS CSS
+           ========================================================================== */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 5px var(--egypt-gold); }
+            50% { box-shadow: 0 0 20px var(--egypt-gold); }
+            100% { box-shadow: 0 0 5px var(--egypt-gold); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .animate-fade-in { animation: fadeIn 1s ease-in-out forwards; }
+        .animate-slide-up { animation: slideUp 0.8s ease-out forwards; }
+        .animate-pulse-gold { animation: pulseGlow 2s infinite; }
+        .animate-shake { animation: shake 0.5s; }
+
+        .game-panel {
+            background: rgba(15, 37, 55, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--egypt-gold);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        .interactive-element {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            filter: grayscale(30%);
+        }
+
+        .interactive-element:hover {
+            filter: grayscale(0%) brightness(1.2) drop-shadow(0 0 10px var(--egypt-gold));
+            transform: scale(1.05);
+        }
+
+        .greek-word {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.2em;
+            color: var(--greek-accent);
+            font-weight: bold;
+            letter-spacing: 1px;
+            cursor: help;
+            border-bottom: 1px dotted var(--greek-accent);
+        }
+
+        .codex-entry {
+            border-left: 3px solid var(--egypt-gold);
+            background: rgba(0,0,0,0.3);
+            transition: all 0.2s;
+        }
+        .codex-entry:hover { background: rgba(212, 175, 55, 0.1); }
+
+        .scanlines::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 100;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        .puzzle-input {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--egypt-gold);
+            color: white;
+            text-align: center;
+            font-family: 'Cinzel', serif;
+            font-size: 1.5rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .puzzle-input:focus { border-color: var(--greek-accent); }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col scanlines" onload="GameApp.init()">
+
+    <!-- PANTALLA DE INICIO (MAIN MENU) -->
+    <div id="main-menu" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--egypt-blue)_0%,_var(--egypt-dark)_100%)]">
+        <div class="text-center max-w-4xl p-8 animate-slide-up">
+            <h3 class="text-[var(--egypt-gold)] text-xl md:text-2xl tracking-[0.3em] uppercase mb-4 title-font opacity-80">
+                Heródoto · Libro II, 121
+            </h3>
+            <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 title-font drop-shadow-[0_0_15px_rgba(212,175,55,0.5)]">
+                El Tesoro de Rampsinito
+            </h1>
+            <p class="text-xl text-gray-300 text-font mb-12 italic leading-relaxed">
+                "El rey mandó construir una cámara de piedra inexpugnable... pero el astuto arquitecto dejó una trampa en el muro."
+            </p>
+
+            <button onclick="GameApp.startGame()" class="group relative px-8 py-4 bg-transparent border-2 border-[var(--egypt-gold)] text-[var(--egypt-gold)] title-font font-bold text-xl uppercase tracking-widest hover:bg-[var(--egypt-gold)] hover:text-black transition-all duration-300 overflow-hidden animate-pulse-gold">
+                <span class="relative z-10">Comenzar Aventura</span>
+                <div class="absolute inset-0 h-full w-0 bg-[var(--egypt-gold)] transition-all duration-300 ease-out group-hover:w-full z-0"></div>
+            </button>
+            
+            <p class="mt-8 text-sm text-gray-500 font-sans">
+                Activa el sonido. Contiene puzles basados en griego antiguo para 1º Bachillerato.
+            </p>
+        </div>
+    </div>
+
+    <!-- INTERFAZ DE JUEGO (UI) -->
+    <div id="game-ui" class="hidden absolute inset-0 z-40 flex flex-col bg-black">
+        
+        <!-- CABECERA -->
+        <header class="h-16 flex items-center justify-between px-6 game-panel z-30">
+            <h2 id="current-location-text" class="title-font text-xl text-[var(--egypt-gold)] font-bold tracking-wider">
+                Exterior del Palacio
+            </h2>
+            <button onclick="GameApp.UI.toggleCodex()" class="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-[var(--egypt-gold)] hover:bg-slate-700 rounded transition-colors group">
+                <svg class="w-6 h-6 text-[var(--egypt-gold)] group-hover:animate-shake" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                <span class="title-font font-bold text-sm tracking-widest">Códice Griego</span>
+            </button>
+        </header>
+
+        <!-- CONTENEDOR PRINCIPAL: Escena y Efectos -->
+        <div class="flex-1 flex relative overflow-hidden bg-[radial-gradient(ellipse_at_center,_#1A2530_0%,_#000000_100%)]">
+            
+            <!-- CANVAS PARA PARTÍCULAS (Z-index arreglado para que se vea sobre el fondo pero bajo la UI) -->
+            <canvas id="fx-canvas" class="absolute inset-0 pointer-events-none z-10 opacity-70"></canvas>
+
+            <!-- ÁREA DE LA ESCENA GRÁFICA -->
+            <main id="scene-viewport" class="flex-1 relative flex items-center justify-center p-8 z-20 transition-opacity duration-1000">
+                <!-- SVGs inyectados por JS -->
+            </main>
+
+            <!-- PANEL LATERAL: CÓDICE GRIEGO -->
+            <aside id="codex-panel" class="w-80 game-panel border-l transform translate-x-full transition-transform duration-300 absolute right-0 top-0 bottom-0 z-40 flex flex-col">
+                <div class="p-4 border-b border-[var(--egypt-gold)] flex justify-between items-center bg-black/50">
+                    <h3 class="title-font text-lg text-[var(--greek-accent)] font-bold">Diccionario Clásico</h3>
+                    <button onclick="GameApp.UI.toggleCodex()" class="text-gray-400 hover:text-white">✕</button>
+                </div>
+                <div class="p-4 flex-1 overflow-y-auto" id="codex-entries"></div>
+            </aside>
+        </div>
+
+        <!-- PIE DE PÁGINA: Diálogos e Inventario -->
+        <footer class="h-48 game-panel border-t flex z-30">
+            <!-- PANEL DE DIÁLOGO -->
+            <div class="flex-1 p-6 relative">
+                <div id="speaker-name" class="title-font text-[var(--egypt-gold)] font-bold text-lg mb-1 tracking-widest uppercase">
+                    Narrador
+                </div>
+                <div id="dialog-text" class="text-font text-2xl text-gray-200 leading-relaxed min-h-[60px]"></div>
+                <div id="dialog-continue" class="absolute bottom-4 right-6 text-sm text-[var(--egypt-gold)] animate-pulse hidden cursor-pointer font-bold" onclick="GameApp.Dialogs.next()">
+                    Haz clic aquí para continuar ▼
+                </div>
+            </div>
+
+            <!-- PANEL DE INVENTARIO -->
+            <div class="w-80 border-l border-[var(--egypt-gold)] p-4 flex flex-col bg-black/40">
+                <h4 class="title-font text-xs text-gray-400 mb-2 uppercase tracking-widest text-center">Inventario</h4>
+                <div id="inventory-grid" class="flex-1 grid grid-cols-3 gap-2 p-2"></div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- MODAL DE PUZLES -->
+    <div id="puzzle-modal" class="hidden absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+        <div class="game-panel p-8 max-w-md w-full rounded-lg text-center relative border-2 border-[var(--egypt-gold)] animate-slide-up shadow-[0_0_50px_rgba(212,175,55,0.2)]">
+            <button onclick="GameApp.Puzzles.close()" class="absolute top-4 right-4 text-gray-400 hover:text-white font-bold text-xl">✕</button>
+            <div id="puzzle-icon" class="mb-6 flex justify-center text-[var(--egypt-gold)]"></div>
+            <h2 id="puzzle-title" class="title-font text-2xl font-bold mb-2 text-white">Título</h2>
+            <p id="puzzle-desc" class="text-font text-lg text-gray-300 mb-8">Descripción del puzle</p>
+            <div id="puzzle-content" class="mb-8"></div>
+            <p id="puzzle-feedback" class="text-sm font-bold mt-4 h-6 transition-colors"></p>
+        </div>
+    </div>
+
+    <script>
+        const GAME_DATA = {
+            dictionary: [
+                { grk: "ὁ βασιλεύς", translit: "ho basileus", esp: "El rey / Faraón", desc: "Monarca absoluto." },
+                { grk: "ὁ φώρ", translit: "ho phōr", esp: "El ladrón", desc: "Aquel que roba con astucia." },
+                { grk: "ὁ ἀδελφός", translit: "ho adelphos", esp: "El hermano", desc: "Familiar de sangre." },
+                { grk: "ἡ κεφαλή", translit: "hē kephalē", esp: "La cabeza", desc: "Parte superior del cuerpo." },
+                { grk: "ὁ οἶνος", translit: "ho oinos", esp: "El vino", desc: "Bebida que nubla el juicio." },
+                { grk: "ἡ χείρ", translit: "hē kheir", esp: "La mano / Brazo", desc: "Extremidad superior." },
+                { grk: "ὁ φύλαξ", translit: "ho phylax", esp: "El guardia", desc: "El que vigila o protege." }
+            ],
+            items: {
+                "plano": { name: "Plano del Arquitecto", icon: `<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` },
+                "vino": { name: "Odres de Vino", icon: `<path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` },
+                "brazo": { name: "Brazo Cortado", icon: `<path d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0V11.5a1.5 1.5 0 00-3 0m-6-3V11.5m0-3v3m0-3h3m-3 0h-3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` }
+            }
+        };
+
+        const ART = {
+            wall: `<svg viewBox="0 0 800 400" width="100%" height="100%" class="opacity-80">
+                    <rect width="800" height="400" fill="#2c241b"/>
+                    ${Array.from({length: 10}).map((_, y) => 
+                        Array.from({length: 8}).map((_, x) => 
+                            `<rect x="${x*100 + (y%2==0?0:50)}" y="${y*40}" width="95" height="35" fill="#4a3b2c" stroke="#1a1510" stroke-width="2"/>`
+                        ).join('')
+                    ).join('')}
+                    <g id="obj-stone" class="interactive-element cursor-pointer" onclick="GameApp.Scenes.interact('stone')">
+                        <rect x="350" y="160" width="95" height="35" fill="#5c4a37" stroke="#d4af37" stroke-width="1" stroke-dasharray="2,2"/>
+                        <text x="397" y="185" fill="#d4af37" font-size="20" font-family="Cinzel" text-anchor="middle">?</text>
+                    </g>
+                  </svg>`,
+            treasury: `<svg viewBox="0 0 800 400" width="100%" height="100%">
+                        <rect width="800" height="400" fill="#0a0806"/>
+                        <path d="M200 400 L300 100 L500 100 L600 400 Z" fill="#14110e"/>
+                        <g id="obj-gold" class="interactive-element" onclick="GameApp.Scenes.interact('gold')">
+                            <polygon points="350,350 450,350 400,250" fill="#d4af37" opacity="0.8"/>
+                            <circle cx="380" cy="330" r="15" fill="#fcf6ba"/>
+                            <circle cx="420" cy="310" r="10" fill="#fcf6ba"/>
+                            <rect x="370" y="280" width="60" height="40" fill="#b8860b"/>
+                        </g>
+                        <g id="obj-brother" class="hidden interactive-element" onclick="GameApp.Scenes.interact('brother')">
+                            <circle cx="400" cy="200" r="30" fill="#8B0000" class="animate-pulse"/>
+                            <path d="M380 230 L420 230 L410 350 L390 350 Z" fill="#4a0000"/>
+                            <text x="400" y="150" fill="white" text-anchor="middle" font-family="Cinzel">¡AYUDA!</text>
+                        </g>
+                      </svg>`,
+            guards: `<svg viewBox="0 0 800 400" width="100%" height="100%">
+                        <rect width="800" height="400" fill="#111827"/>
+                        <g id="obj-guards" class="interactive-element" onclick="GameApp.Scenes.interact('guards')">
+                            <rect x="250" y="150" width="80" height="200" fill="#374151"/>
+                            <circle cx="290" cy="120" r="30" fill="#9CA3AF"/>
+                            <rect x="470" y="150" width="80" height="200" fill="#374151"/>
+                            <circle cx="510" cy="120" r="30" fill="#9CA3AF"/>
+                            <line x1="340" y1="50" x2="340" y2="350" stroke="#d4af37" stroke-width="4"/>
+                            <line x1="460" y1="50" x2="460" y2="350" stroke="#d4af37" stroke-width="4"/>
+                            <path d="M380 50 L420 50 L410 250 L390 250 Z" fill="#4a0000" opacity="0.5"/>
+                        </g>
+                     </svg>`,
+            princess: `<svg viewBox="0 0 800 400" width="100%" height="100%">
+                        <rect width="800" height="400" fill="#000000"/>
+                        <g id="obj-princess" class="interactive-element" onclick="GameApp.Scenes.interact('princess')">
+                            <circle cx="380" cy="150" r="5" fill="white" class="animate-pulse"/>
+                            <circle cx="420" cy="150" r="5" fill="white" class="animate-pulse"/>
+                            <path d="M370 140 Q380 130 390 140" stroke="#d4af37" fill="none" stroke-width="2"/>
+                            <path d="M410 140 Q420 130 430 140" stroke="#d4af37" fill="none" stroke-width="2"/>
+                        </g>
+                       </svg>`
+        };
+
+        const AudioFX = {
+            ctx: null,
+            lastTypeTime: 0,
+            init() {
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+            },
+            playTone(freq, type, duration, vol=0.1) {
+                if(!this.ctx || this.ctx.state === 'suspended') return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            },
+            type() { 
+                const now = this.ctx ? this.ctx.currentTime : 0;
+                // Prevenir saturación de audio espaciando el sonido de tecleo
+                if(now - this.lastTypeTime > 0.08) {
+                    this.playTone(400 + Math.random()*200, 'square', 0.03, 0.02); 
+                    this.lastTypeTime = now;
+                }
+            },
+            click() { this.playTone(800, 'sine', 0.1, 0.05); },
+            success() { 
+                this.playTone(523.25, 'sine', 0.2, 0.1); 
+                setTimeout(() => this.playTone(659.25, 'sine', 0.2, 0.1), 100);
+                setTimeout(() => this.playTone(783.99, 'sine', 0.4, 0.1), 200); 
+            },
+            error() {
+                this.playTone(150, 'sawtooth', 0.3, 0.1);
+                setTimeout(() => this.playTone(100, 'sawtooth', 0.4, 0.1), 150);
+            },
+            mystery() {
+                this.playTone(200, 'triangle', 2, 0.1);
+                this.playTone(205, 'triangle', 2, 0.1); 
+            },
+            trap() {
+                this.playTone(100, 'square', 0.5, 0.3);
+                setTimeout(() => this.playTone(50, 'sawtooth', 1, 0.4), 100);
+            }
+        };
+
+        const FX = {
+            canvas: null,
+            ctx: null,
+            particles: [],
+            animationId: null,
+            mode: 'none',
+
+            init() {
+                this.canvas = document.getElementById('fx-canvas');
+                if(!this.canvas) return;
+                this.ctx = this.canvas.getContext('2d');
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                this.loop();
+            },
+            resize() {
+                if(this.canvas) {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                }
+            },
+            setMode(mode) {
+                this.mode = mode;
+                this.particles = [];
+                if(mode === 'fire') {
+                    for(let i=0; i<50; i++) this.addFireParticle();
+                } else if (mode === 'sand') {
+                    for(let i=0; i<100; i++) this.addSandParticle();
+                }
+            },
+            addFireParticle() {
+                this.particles.push({
+                    x: window.innerWidth/2 + (Math.
