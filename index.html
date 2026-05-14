@@ -9,9 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;700&display=swap" rel="stylesheet">
     
     <style>
-        /* ==========================================================================
-           VARIABLES GLOBALES Y CONFIGURACIÓN
-           ========================================================================== */
+        /* VARIABLES GLOBALES */
         :root {
             --egypt-gold: #D4AF37;
             --egypt-sand: #E5C287;
@@ -29,17 +27,10 @@
             user-select: none;
         }
 
-        h1, h2, h3, .title-font {
-            font-family: 'Cinzel', serif;
-        }
+        h1, h2, h3, .title-font { font-family: 'Cinzel', serif; }
+        .text-font { font-family: 'Cormorant Garamond', serif; }
 
-        .text-font {
-            font-family: 'Cormorant Garamond', serif;
-        }
-
-        /* ==========================================================================
-           ANIMACIONES Y EFECTOS CSS
-           ========================================================================== */
+        /* ANIMACIONES */
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         @keyframes pulseGlow {
@@ -100,7 +91,6 @@
             top: 0; left: 0; bottom: 0; right: 0;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
             z-index: 100;
-            background-size: 100% 4px, 3px 100%;
             pointer-events: none;
             opacity: 0.3;
         }
@@ -119,10 +109,13 @@
         .puzzle-input:focus { border-color: var(--greek-accent); }
     </style>
 </head>
-<body class="w-screen h-screen flex flex-col scanlines" onload="GameApp.init()">
+<body class="w-screen h-screen flex flex-col scanlines bg-black">
 
-    <!-- PANTALLA DE INICIO (MAIN MENU) -->
-    <div id="main-menu" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--egypt-blue)_0%,_var(--egypt-dark)_100%)]">
+    <!-- CANVAS PARA PARTÍCULAS -->
+    <canvas id="fx-canvas" class="absolute inset-0 pointer-events-none z-10 opacity-70"></canvas>
+
+    <!-- PANTALLA DE INICIO -->
+    <div id="main-menu" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--egypt-blue)_0%,_var(--egypt-dark)_100%)]" style="display: flex;">
         <div class="text-center max-w-4xl p-8 animate-slide-up">
             <h3 class="text-[var(--egypt-gold)] text-xl md:text-2xl tracking-[0.3em] uppercase mb-4 title-font opacity-80">
                 Heródoto · Libro II, 121
@@ -130,13 +123,12 @@
             <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 title-font drop-shadow-[0_0_15px_rgba(212,175,55,0.5)]">
                 El Tesoro de Rampsinito
             </h1>
-            <p class="text-xl text-gray-300 text-font mb-12 italic leading-relaxed">
+            <p class="text-xl text-gray-300 text-font mb-12 italic leading-relaxed px-4">
                 "El rey mandó construir una cámara de piedra inexpugnable... pero el astuto arquitecto dejó una trampa en el muro."
             </p>
 
-            <button onclick="GameApp.startGame()" class="group relative px-8 py-4 bg-transparent border-2 border-[var(--egypt-gold)] text-[var(--egypt-gold)] title-font font-bold text-xl uppercase tracking-widest hover:bg-[var(--egypt-gold)] hover:text-black transition-all duration-300 overflow-hidden animate-pulse-gold">
+            <button id="btn-start" class="group relative px-8 py-4 bg-[var(--egypt-dark)] border-2 border-[var(--egypt-gold)] text-[var(--egypt-gold)] title-font font-bold text-xl uppercase tracking-widest hover:bg-[var(--egypt-gold)] hover:text-black transition-all duration-300 overflow-hidden animate-pulse-gold cursor-pointer">
                 <span class="relative z-10">Comenzar Aventura</span>
-                <div class="absolute inset-0 h-full w-0 bg-[var(--egypt-gold)] transition-all duration-300 ease-out group-hover:w-full z-0"></div>
             </button>
             
             <p class="mt-8 text-sm text-gray-500 font-sans">
@@ -146,14 +138,14 @@
     </div>
 
     <!-- INTERFAZ DE JUEGO (UI) -->
-    <div id="game-ui" class="hidden absolute inset-0 z-40 flex flex-col bg-black">
+    <div id="game-ui" class="absolute inset-0 z-40 flex-col bg-transparent" style="display: none;">
         
         <!-- CABECERA -->
         <header class="h-16 flex items-center justify-between px-6 game-panel z-30">
             <h2 id="current-location-text" class="title-font text-xl text-[var(--egypt-gold)] font-bold tracking-wider">
                 Exterior del Palacio
             </h2>
-            <button onclick="GameApp.UI.toggleCodex()" class="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-[var(--egypt-gold)] hover:bg-slate-700 rounded transition-colors group">
+            <button id="btn-codex" class="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-[var(--egypt-gold)] hover:bg-slate-700 rounded transition-colors group cursor-pointer">
                 <svg class="w-6 h-6 text-[var(--egypt-gold)] group-hover:animate-shake" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                 </svg>
@@ -161,13 +153,9 @@
             </button>
         </header>
 
-        <!-- CONTENEDOR PRINCIPAL: Escena y Efectos -->
+        <!-- CONTENEDOR PRINCIPAL: Escena -->
         <div class="flex-1 flex relative overflow-hidden bg-[radial-gradient(ellipse_at_center,_#1A2530_0%,_#000000_100%)]">
             
-            <!-- CANVAS PARA PARTÍCULAS (Z-index arreglado para que se vea sobre el fondo pero bajo la UI) -->
-            <canvas id="fx-canvas" class="absolute inset-0 pointer-events-none z-10 opacity-70"></canvas>
-
-            <!-- ÁREA DE LA ESCENA GRÁFICA -->
             <main id="scene-viewport" class="flex-1 relative flex items-center justify-center p-8 z-20 transition-opacity duration-1000">
                 <!-- SVGs inyectados por JS -->
             </main>
@@ -176,7 +164,7 @@
             <aside id="codex-panel" class="w-80 game-panel border-l transform translate-x-full transition-transform duration-300 absolute right-0 top-0 bottom-0 z-40 flex flex-col">
                 <div class="p-4 border-b border-[var(--egypt-gold)] flex justify-between items-center bg-black/50">
                     <h3 class="title-font text-lg text-[var(--greek-accent)] font-bold">Diccionario Clásico</h3>
-                    <button onclick="GameApp.UI.toggleCodex()" class="text-gray-400 hover:text-white">✕</button>
+                    <button id="btn-close-codex" class="text-gray-400 hover:text-white cursor-pointer text-xl">✕</button>
                 </div>
                 <div class="p-4 flex-1 overflow-y-auto" id="codex-entries"></div>
             </aside>
@@ -190,13 +178,13 @@
                     Narrador
                 </div>
                 <div id="dialog-text" class="text-font text-2xl text-gray-200 leading-relaxed min-h-[60px]"></div>
-                <div id="dialog-continue" class="absolute bottom-4 right-6 text-sm text-[var(--egypt-gold)] animate-pulse hidden cursor-pointer font-bold" onclick="GameApp.Dialogs.next()">
+                <div id="dialog-continue" class="absolute bottom-4 right-6 text-sm text-[var(--egypt-gold)] animate-pulse hidden cursor-pointer font-bold bg-black/50 px-4 py-2 rounded-full border border-[var(--egypt-gold)]">
                     Haz clic aquí para continuar ▼
                 </div>
             </div>
 
             <!-- PANEL DE INVENTARIO -->
-            <div class="w-80 border-l border-[var(--egypt-gold)] p-4 flex flex-col bg-black/40">
+            <div class="w-80 border-l border-[var(--egypt-gold)] p-4 flex flex-col bg-black/40 hidden md:flex">
                 <h4 class="title-font text-xs text-gray-400 mb-2 uppercase tracking-widest text-center">Inventario</h4>
                 <div id="inventory-grid" class="flex-1 grid grid-cols-3 gap-2 p-2"></div>
             </div>
@@ -204,9 +192,9 @@
     </div>
 
     <!-- MODAL DE PUZLES -->
-    <div id="puzzle-modal" class="hidden absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+    <div id="puzzle-modal" class="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm" style="display: none;">
         <div class="game-panel p-8 max-w-md w-full rounded-lg text-center relative border-2 border-[var(--egypt-gold)] animate-slide-up shadow-[0_0_50px_rgba(212,175,55,0.2)]">
-            <button onclick="GameApp.Puzzles.close()" class="absolute top-4 right-4 text-gray-400 hover:text-white font-bold text-xl">✕</button>
+            <button id="btn-close-puzzle" class="absolute top-4 right-4 text-gray-400 hover:text-[var(--egypt-gold)] font-bold text-xl cursor-pointer">✕</button>
             <div id="puzzle-icon" class="mb-6 flex justify-center text-[var(--egypt-gold)]"></div>
             <h2 id="puzzle-title" class="title-font text-2xl font-bold mb-2 text-white">Título</h2>
             <p id="puzzle-desc" class="text-font text-lg text-gray-300 mb-8">Descripción del puzle</p>
@@ -227,9 +215,9 @@
                 { grk: "ὁ φύλαξ", translit: "ho phylax", esp: "El guardia", desc: "El que vigila o protege." }
             ],
             items: {
-                "plano": { name: "Plano del Arquitecto", icon: `<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` },
-                "vino": { name: "Odres de Vino", icon: `<path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` },
-                "brazo": { name: "Brazo Cortado", icon: `<path d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0V11.5a1.5 1.5 0 00-3 0m-6-3V11.5m0-3v3m0-3h3m-3 0h-3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` }
+                "plano": { name: "Plano", icon: `<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` },
+                "vino": { name: "Vino", icon: `<path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` },
+                "brazo": { name: "Brazo", icon: `<path d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0V11.5a1.5 1.5 0 00-3 0m-6-3V11.5m0-3v3m0-3h3m-3 0h-3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` }
             }
         };
 
@@ -241,7 +229,7 @@
                             `<rect x="${x*100 + (y%2==0?0:50)}" y="${y*40}" width="95" height="35" fill="#4a3b2c" stroke="#1a1510" stroke-width="2"/>`
                         ).join('')
                     ).join('')}
-                    <g id="obj-stone" class="interactive-element cursor-pointer" onclick="GameApp.Scenes.interact('stone')">
+                    <g id="obj-stone" class="interactive-element cursor-pointer" onclick="window.GameApp.Scenes.interact('stone')">
                         <rect x="350" y="160" width="95" height="35" fill="#5c4a37" stroke="#d4af37" stroke-width="1" stroke-dasharray="2,2"/>
                         <text x="397" y="185" fill="#d4af37" font-size="20" font-family="Cinzel" text-anchor="middle">?</text>
                     </g>
@@ -249,13 +237,13 @@
             treasury: `<svg viewBox="0 0 800 400" width="100%" height="100%">
                         <rect width="800" height="400" fill="#0a0806"/>
                         <path d="M200 400 L300 100 L500 100 L600 400 Z" fill="#14110e"/>
-                        <g id="obj-gold" class="interactive-element" onclick="GameApp.Scenes.interact('gold')">
+                        <g id="obj-gold" class="interactive-element" onclick="window.GameApp.Scenes.interact('gold')">
                             <polygon points="350,350 450,350 400,250" fill="#d4af37" opacity="0.8"/>
                             <circle cx="380" cy="330" r="15" fill="#fcf6ba"/>
                             <circle cx="420" cy="310" r="10" fill="#fcf6ba"/>
                             <rect x="370" y="280" width="60" height="40" fill="#b8860b"/>
                         </g>
-                        <g id="obj-brother" class="hidden interactive-element" onclick="GameApp.Scenes.interact('brother')">
+                        <g id="obj-brother" class="hidden interactive-element" onclick="window.GameApp.Scenes.interact('brother')">
                             <circle cx="400" cy="200" r="30" fill="#8B0000" class="animate-pulse"/>
                             <path d="M380 230 L420 230 L410 350 L390 350 Z" fill="#4a0000"/>
                             <text x="400" y="150" fill="white" text-anchor="middle" font-family="Cinzel">¡AYUDA!</text>
@@ -263,7 +251,7 @@
                       </svg>`,
             guards: `<svg viewBox="0 0 800 400" width="100%" height="100%">
                         <rect width="800" height="400" fill="#111827"/>
-                        <g id="obj-guards" class="interactive-element" onclick="GameApp.Scenes.interact('guards')">
+                        <g id="obj-guards" class="interactive-element" onclick="window.GameApp.Scenes.interact('guards')">
                             <rect x="250" y="150" width="80" height="200" fill="#374151"/>
                             <circle cx="290" cy="120" r="30" fill="#9CA3AF"/>
                             <rect x="470" y="150" width="80" height="200" fill="#374151"/>
@@ -275,7 +263,7 @@
                      </svg>`,
             princess: `<svg viewBox="0 0 800 400" width="100%" height="100%">
                         <rect width="800" height="400" fill="#000000"/>
-                        <g id="obj-princess" class="interactive-element" onclick="GameApp.Scenes.interact('princess')">
+                        <g id="obj-princess" class="interactive-element" onclick="window.GameApp.Scenes.interact('princess')">
                             <circle cx="380" cy="150" r="5" fill="white" class="animate-pulse"/>
                             <circle cx="420" cy="150" r="5" fill="white" class="animate-pulse"/>
                             <path d="M370 140 Q380 130 390 140" stroke="#d4af37" fill="none" stroke-width="2"/>
@@ -288,8 +276,15 @@
             ctx: null,
             lastTypeTime: 0,
             init() {
-                window.AudioContext = window.AudioContext || window.webkitAudioContext;
-                this.ctx = new AudioContext();
+                try {
+                    window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (window.AudioContext) {
+                        this.ctx = new AudioContext();
+                        if(this.ctx.state === 'suspended') this.ctx.resume();
+                    }
+                } catch(e) {
+                    console.warn("Audio Context bloqueado o no soportado.");
+                }
             },
             playTone(freq, type, duration, vol=0.1) {
                 if(!this.ctx || this.ctx.state === 'suspended') return;
@@ -308,7 +303,6 @@
             },
             type() { 
                 const now = this.ctx ? this.ctx.currentTime : 0;
-                // Prevenir saturación de audio espaciando el sonido de tecleo
                 if(now - this.lastTypeTime > 0.08) {
                     this.playTone(400 + Math.random()*200, 'square', 0.03, 0.02); 
                     this.lastTypeTime = now;
@@ -335,12 +329,7 @@
         };
 
         const FX = {
-            canvas: null,
-            ctx: null,
-            particles: [],
-            animationId: null,
-            mode: 'none',
-
+            canvas: null, ctx: null, particles: [], animationId: null, mode: 'none',
             init() {
                 this.canvas = document.getElementById('fx-canvas');
                 if(!this.canvas) return;
@@ -358,12 +347,21 @@
             setMode(mode) {
                 this.mode = mode;
                 this.particles = [];
-                if(mode === 'fire') {
-                    for(let i=0; i<50; i++) this.addFireParticle();
-                } else if (mode === 'sand') {
-                    for(let i=0; i<100; i++) this.addSandParticle();
-                }
+                if(mode === 'fire') { for(let i=0; i<50; i++) this.addFireParticle(); } 
+                else if (mode === 'sand') { for(let i=0; i<100; i++) this.addSandParticle(); }
             },
             addFireParticle() {
                 this.particles.push({
-                    x: window.innerWidth/2 + (Math.
+                    x: window.innerWidth/2 + (Math.random() * 300 - 150),
+                    y: window.innerHeight,
+                    size: Math.random() * 8 + 4,
+                    speedY: Math.random() * -3 - 1,
+                    speedX: Math.random() * 2 - 1,
+                    life: Math.random() * 100 + 50,
+                    color: `rgba(255, ${Math.random()*150 + 50}, 0, 0.6)`
+                });
+            },
+            addSandParticle() {
+                this.particles.push({
+                    x: Math.random() * window.innerWidth,
+     
