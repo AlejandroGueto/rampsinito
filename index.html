@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -364,4 +363,429 @@
             addSandParticle() {
                 this.particles.push({
                     x: Math.random() * window.innerWidth,
-     
+                    y: -10,
+                    size: Math.random() * 3 + 1,
+                    speedY: Math.random() * 2 + 1,
+                    speedX: Math.random() * 3 + 1,
+                    color: 'rgba(229, 194, 135, 0.5)'
+                });
+            },
+            loop() {
+                if(!this.ctx) return;
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                for(let i = this.particles.length - 1; i >= 0; i--) {
+                    let p = this.particles[i];
+                    p.x += p.speedX; p.y += p.speedY;
+                    this.ctx.fillStyle = p.color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    if(this.mode === 'fire') {
+                        p.size *= 0.95; p.life--;
+                        if(p.life <= 0 || p.size < 0.5) { this.particles.splice(i, 1); this.addFireParticle(); }
+                    } else if (this.mode === 'sand') {
+                        if(p.y > this.canvas.height || p.x > this.canvas.width) { this.particles.splice(i, 1); this.addSandParticle(); }
+                    }
+                }
+                this.animationId = requestAnimationFrame(() => this.loop());
+            }
+        };
+
+        const State = {
+            inventory: ['plano'],
+            flags: { hasStoneOpened: false, isBrotherTrapped: false, isBrotherDead: false, guardsDrunk: false, princessMet: false },
+            hasItem(id) { return this.inventory.includes(id); },
+            addItem(id) {
+                if(!this.hasItem(id)) {
+                    this.inventory.push(id);
+                    AudioFX.success();
+                    GameApp.UI.renderInventory();
+                    GameApp.UI.notify(`Objeto obtenido: ${GAME_DATA.items[id].name}`);
+                }
+            },
+            removeItem(id) {
+                this.inventory = this.inventory.filter(i => i !== id);
+                GameApp.UI.renderInventory();
+            }
+        };
+
+        const Dialogs = {
+            queue: [], isTyping: false, currentText: "", currentBuffer: "",
+            targetDiv: null, charIndex: 0, typingSpeed: 25, callback: null,
+
+            init() {
+                this.targetDiv = document.getElementById('dialog-text');
+                this.speakerDiv = document.getElementById('speaker-name');
+                this.continueBtn = document.getElementById('dialog-continue');
+            },
+            play(dialogArray, onComplete = null) {
+                this.queue = [...dialogArray];
+                this.callback = onComplete;
+                this.next();
+            },
+            next() {
+                if (this.isTyping) {
+                    this.charIndex = this.currentText.length;
+                    this.targetDiv.innerHTML = this.currentText;
+                    this.isTyping = false;
+                    this.continueBtn.classList.remove('hidden');
+                    return;
+                }
+                if (this.queue.length > 0) {
+                    const line = this.queue.shift();
+                    this.speakerDiv.innerText = line.speaker;
+                    this.speakerDiv.style.color = line.color || 'var(--egypt-gold)';
+                    this.currentText = line.text.replace(/\[(.*?)\]/g, "<span class='greek-word' title='Consulta tu códice'>$1</span>");
+                    this.charIndex = 0;
+                    this.currentBuffer = "";
+                    this.targetDiv.innerHTML = "";
+                    this.isTyping = true;
+                    this.continueBtn.classList.add('hidden');
+                    this.typeChar();
+                } else {
+                    if (this.callback) {
+                        const cb = this.callback;
+                        this.callback = null;
+                        cb();
+                    }
+                }
+            },
+            typeChar() {
+                if (this.charIndex < this.currentText.length) {
+                    if (this.currentText.charAt(this.charIndex) === '<') {
+                        let tag = "";
+                        while(this.currentText.charAt(this.charIndex) !== '>' && this.charIndex < this.currentText.length){
+                            tag += this.currentText.charAt(this.charIndex);
+                            this.charIndex++;
+                        }
+                        tag += '>';
+                        this.currentBuffer += tag;
+                        this.charIndex++;
+                    } else {
+                        this.currentBuffer += this.currentText.charAt(this.charIndex);
+                        this.charIndex++;
+                        AudioFX.type(); 
+                    }
+                    this.targetDiv.innerHTML = this.currentBuffer;
+                    if (this.isTyping) setTimeout(() => this.typeChar(), this.typingSpeed);
+                } else {
+                    this.isTyping = false;
+                    this.continueBtn.classList.remove('hidden');
+                }
+            }
+        };
+
+        const Puzzles = {
+            activePuzzle: null, callbacks: {},
+
+            open(config, onSuccess) {
+                this.activePuzzle = config;
+                this.callbacks.success = onSuccess;
+                
+                document.getElementById('puzzle-title').innerText = config.title;
+                document.getElementById('puzzle-desc').innerText = config.desc;
+                document.getElementById('puzzle-icon').innerHTML = `<svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">${config.icon}</svg>`;
+                document.getElementById('puzzle-feedback').innerText = "";
+                document.getElementById('puzzle-feedback').className = "text-sm font-bold mt-4 h-6";
+
+                const contentDiv = document.getElementById('puzzle-content');
+                if (config.type === 'translation') {
+                    contentDiv.innerHTML = `
+                        <p class="text-gray-400 mb-4 text-sm">Traduce al griego clásico (sin tildes, usa la transliteración o como suena).<br>Usa tu Códice Griego.</p>
+                        <input type="text" id="puzzle-answer" class="puzzle-input w-full p-2" placeholder="Respuesta..." autocomplete="off">
+                        <button id="btn-solve" class="mt-6 px-6 py-2 bg-[var(--egypt-gold)] text-black title-font font-bold rounded hover:bg-white transition-colors cursor-pointer">Resolver</button>
+                    `;
+                    setTimeout(() => {
+                        document.getElementById('puzzle-answer').focus();
+                        document.getElementById('btn-solve').addEventListener('click', () => this.check());
+                    }, 100);
+                }
+                document.getElementById('puzzle-modal').style.display = 'flex';
+                AudioFX.mystery();
+            },
+            close() {
+                document.getElementById('puzzle-modal').style.display = 'none';
+                this.activePuzzle = null;
+            },
+            check() {
+                if(!this.activePuzzle) return;
+                
+                const input = document.getElementById('puzzle-answer').value.toLowerCase().trim();
+                const feedback = document.getElementById('puzzle-feedback');
+                let isCorrect = this.activePuzzle.answers.some(ans => input === ans.toLowerCase() || input.includes(ans.toLowerCase()));
+
+                if (isCorrect) {
+                    AudioFX.success();
+                    feedback.innerText = "¡CORRECTO! Sabiduría revelada.";
+                    feedback.classList.replace('text-red-500', 'text-green-500');
+                    setTimeout(() => {
+                        this.close();
+                        if(this.callbacks.success) this.callbacks.success();
+                    }, 1500);
+                } else {
+                    AudioFX.error();
+                    document.querySelector('.game-panel.max-w-md').classList.add('animate-shake');
+                    setTimeout(() => document.querySelector('.game-panel.max-w-md').classList.remove('animate-shake'), 500);
+                    feedback.innerText = "Incorrecto. Consulta el Códice.";
+                    feedback.classList.add('text-red-500');
+                }
+            }
+        };
+
+        const Scenes = {
+            current: null,
+
+            load(sceneId) {
+                this.current = sceneId;
+                const viewport = document.getElementById('scene-viewport');
+                viewport.style.opacity = 0;
+                
+                setTimeout(() => {
+                    const titles = { 'wall': 'Muro del Faraón', 'treasury': 'Cámara del Tesoro', 'guards': 'Patio de Ejecuciones', 'princess': 'Aposentos Reales' };
+                    document.getElementById('current-location-text').innerText = titles[sceneId] || 'Desconocido';
+                    
+                    if(sceneId === 'wall') {
+                        viewport.innerHTML = ART.wall;
+                        FX.setMode('sand');
+                    } else if (sceneId === 'treasury') {
+                        viewport.innerHTML = ART.treasury;
+                        FX.setMode('fire');
+                        if (State.flags.isBrotherTrapped) {
+                            document.getElementById('obj-gold').classList.add('hidden');
+                            document.getElementById('obj-brother').classList.remove('hidden');
+                        }
+                    } else if (sceneId === 'guards') {
+                        viewport.innerHTML = ART.guards;
+                        FX.setMode('none');
+                    } else if (sceneId === 'princess') {
+                        viewport.innerHTML = ART.princess;
+                        FX.setMode('none');
+                    }
+
+                    viewport.style.opacity = 1;
+                    this.playSceneIntro(sceneId);
+                }, 500);
+            },
+
+            playSceneIntro(id) {
+                if (id === 'wall' && !State.flags.hasStoneOpened) {
+                    Dialogs.play([
+                        { speaker: "Narrador", text: "El arquitecto, en su lecho de muerte, os reveló a tu hermano y a ti el secreto." },
+                        { speaker: "Narrador", text: "Hay una piedra en este muro que se puede retirar. Busca en los planos y en tu conocimiento de la lengua." },
+                        { speaker: "Ladrón (Tú)", color: "var(--greek-accent)", text: "Debo encontrar esa piedra. Somos nosotros, los [ὁ φώρ], quienes nos llevaremos el tesoro." }
+                    ]);
+                } else if (id === 'treasury' && !State.flags.isBrotherTrapped) {
+                    Dialogs.play([
+                        { speaker: "Narrador", text: "Habéis entrado. El oro de Rampsinito brilla en la penumbra." },
+                        { speaker: "Hermano", color: "#fca5a5", text: "¡Mira cuánto oro! Coge lo que puedas, ¡rápido!" },
+                        { speaker: "Narrador", text: "Haz clic en el tesoro para robarlo." }
+                    ]);
+                } else if (id === 'guards' && !State.flags.guardsDrunk) {
+                    Dialogs.play([
+                        { speaker: "Narrador", text: "El Faraón ha colgado el cuerpo sin cabeza de tu hermano para atraer al cómplice." },
+                        { speaker: "Ladrón (Tú)", color: "var(--greek-accent)", text: "Mi madre me matará si no recupero su cuerpo. Los [ὁ φύλαξ] vigilan. Necesito una distracción." }
+                    ]);
+                } else if (id === 'princess') {
+                    Dialogs.play([
+                        { speaker: "Narrador", text: "El Faraón, desesperado, obliga a la princesa a interrogar a los hombres en la oscuridad." },
+                        { speaker: "Princesa", color: "#c084fc", text: "Acércate, extraño. Cuéntame... ¿cuál ha sido tu acción más astuta y la más malvada?" }
+                    ]);
+                }
+            },
+
+            interact(objectId) {
+                AudioFX.click();
+
+                if (objectId === 'stone' && !State.flags.hasStoneOpened) {
+                    Puzzles.open({
+                        title: "El Sello del Arquitecto",
+                        desc: "¿Cuál es la palabra griega para 'El Ladrón' que os define?",
+                        icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>`,
+                        type: "translation",
+                        answers: ["phor", "phoros", "ho phor", "fór"]
+                    }, () => {
+                        State.flags.hasStoneOpened = true;
+                        document.getElementById('obj-stone').style.transform = "translateX(50px) translateY(50px)";
+                        document.getElementById('obj-stone').style.opacity = "0.2";
+                        Dialogs.play([ { speaker: "Narrador", text: "¡La piedra cede! Un pasadizo oscuro se revela ante ti." } ], () => Scenes.load('treasury'));
+                    });
+                }
+
+                if (objectId === 'gold') {
+                    AudioFX.trap();
+                    document.body.style.backgroundColor = "var(--egypt-red)";
+                    setTimeout(() => document.body.style.backgroundColor = "var(--egypt-dark)", 200);
+                    
+                    State.flags.isBrotherTrapped = true;
+                    document.getElementById('obj-gold').classList.add('hidden');
+                    document.getElementById('obj-brother').classList.remove('hidden');
+
+                    Dialogs.play([
+                        { speaker: "Hermano", color: "#fca5a5", text: "¡AAAAH! ¡Una trampa de lazos! ¡Me ha atrapado la pierna!" },
+                        { speaker: "Narrador", text: "El [ὁ βασιλεύς] Rampsinito sabía que le robaban. El lazo es irrompible." },
+                        { speaker: "Hermano", color: "#fca5a5", text: "Mañana me torturarán y te delataré. Por favor, hermano... córtame [ἡ κεφαλή]." },
+                        { speaker: "Narrador", text: "Es una decisión terrible, pero lógica. Tienes que hacerlo." }
+                    ]);
+                }
+
+                if (objectId === 'brother' && State.flags.isBrotherTrapped && !State.flags.isBrotherDead) {
+                    Puzzles.open({
+                        title: "El Sacrificio Final",
+                        desc: "Debes amputar la parte que hará irreconocible el cuerpo. ¿Cómo se dice 'La Cabeza' en griego?",
+                        icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"/>`,
+                        type: "translation",
+                        answers: ["kephale", "kefale", "he kephale", "cefale"]
+                    }, () => {
+                        State.flags.isBrotherDead = true;
+                        document.getElementById('scene-viewport').innerHTML = `<h1 class="text-7xl font-black text-red-600 animate-shake title-font">SANGRE Y SILENCIO</h1>`;
+                        State.addItem('vino'); 
+                        Dialogs.play([
+                            { speaker: "Narrador", text: "Con lágrimas en los ojos, cumples la voluntad de tu [ὁ ἀδελφός]. Te llevas su cabeza." },
+                            { speaker: "Narrador", text: "Al día siguiente, tu madre te amenaza: recupera el resto del cuerpo o te delatará. Has comprado odres de vino viejo." }
+                        ], () => Scenes.load('guards'));
+                    });
+                }
+
+                if (objectId === 'guards') {
+                    if(!State.hasItem('vino')) return;
+                    Dialogs.play([
+                        { speaker: "Ladrón (Tú)", color: "var(--greek-accent)", text: "¡Oh, desgracia! ¡Mis burros se han desbocado! ¡Se derrama mi preciado néctar!" },
+                        { speaker: "Guardia", color: "gray", text: "¡Rápido, muchachos! ¡Traed vasos antes de que se pierda en la arena!" },
+                    ], () => {
+                        Puzzles.open({
+                            title: "El Plan Maestro",
+                            desc: "Ofréceles más bebida. ¿Qué palabra griega usas para invitarlos al 'Vino'?",
+                            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>`,
+                            type: "translation",
+                            answers: ["oinos", "ho oinos"]
+                        }, () => {
+                            State.flags.guardsDrunk = true;
+                            State.removeItem('vino');
+                            State.addItem('brazo'); 
+                            document.getElementById('obj-guards').style.transform = "rotate(-90deg)";
+                            document.getElementById('obj-guards').style.transformOrigin = "bottom center";
+
+                            Dialogs.play([
+                                { speaker: "Narrador", text: "Los guardias caen redondos. Bajas el cuerpo de tu hermano." },
+                                { speaker: "Narrador", text: "Como burla, les afeitas la mitad de la barba a todos los guardias." },
+                                { speaker: "Ladrón (Tú)", color: "var(--greek-accent)", text: "Ya he cumplido con mi madre. Pero me llevo este brazo de un cadáver reciente... por si acaso." }
+                            ], () => Scenes.load('princess'));
+                        });
+                    });
+                }
+
+                if (objectId === 'princess') {
+                    if(!State.hasItem('brazo')) return;
+                    Dialogs.play([
+                        { speaker: "Ladrón (Tú)", color: "var(--greek-accent)", text: "Princesa... mi acción más malvada fue decapitar a mi hermano. La más astuta, emborrachar a tus guardias." },
+                        { speaker: "Princesa", color: "#c084fc", text: "¡TÚ ERES EL LADRÓN! ¡GUARDIAS! ¡LO TENGO AGARRADO!" },
+                        { speaker: "Narrador", text: "En la oscuridad, ella intenta agarrar tu brazo para que no escapes." }
+                    ], () => {
+                        Puzzles.open({
+                            title: "Escape en la Oscuridad",
+                            desc: "¿Qué vas a dejarle en su poder para engañarla? Escribe la palabra griega para 'La Mano / El Brazo'.",
+                            icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0V11.5a1.5 1.5 0 00-3 0m-6-3V11.5m0-3v3m0-3h3m-3 0h-3"/>`,
+                            type: "translation",
+                            answers: ["cheir", "kheir", "he kheir"]
+                        }, () => {
+                            State.removeItem('brazo');
+                            document.getElementById('game-ui').innerHTML = `
+                                <div class="w-full h-full flex flex-col items-center justify-center bg-black p-8 text-center animate-fade-in z-50 absolute inset-0">
+                                    <h1 class="text-6xl text-[var(--egypt-gold)] title-font mb-8">VICTORIA</h1>
+                                    <p class="text-2xl text-white text-font max-w-3xl leading-relaxed mb-8">
+                                        "El faraón Rampsinito quedó tan asombrado por tu astucia al dejarle un brazo muerto a su hija, que proclamó un perdón absoluto."
+                                    </p>
+                                    <p class="text-xl text-[var(--greek-accent)] text-font max-w-3xl leading-relaxed mb-12">
+                                        Consideró que si los egipcios eran los más sabios de la humanidad, aquel ladrón era el más sabio de los egipcios. Obtuviste el perdón, el tesoro y la mano de la princesa [ἡ θυγάτηρ].
+                                    </p>
+                                    <button onclick="location.reload()" class="px-8 py-4 bg-[var(--egypt-gold)] text-black font-bold title-font tracking-widest hover:bg-white transition-colors cursor-pointer">Volver a Jugar</button>
+                                </div>
+                            `;
+                            AudioFX.success();
+                            FX.setMode('fire');
+                        });
+                    });
+                }
+            }
+        };
+
+        const UI = {
+            init() { this.renderCodex(); this.renderInventory(); },
+            toggleCodex() {
+                const panel = document.getElementById('codex-panel');
+                panel.classList.toggle('translate-x-full');
+                AudioFX.click();
+            },
+            renderCodex() {
+                document.getElementById('codex-entries').innerHTML = GAME_DATA.dictionary.map(entry => `
+                    <div class="codex-entry p-3 mb-2 rounded cursor-default group">
+                        <div class="text-[var(--greek-accent)] font-bold text-lg text-font">${entry.grk}</div>
+                        <div class="text-xs text-gray-400 italic mb-1">[${entry.translit}]</div>
+                        <div class="text-white font-bold text-sm">${entry.esp}</div>
+                        <div class="text-xs text-gray-500 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">${entry.desc}</div>
+                    </div>
+                `).join('');
+            },
+            renderInventory() {
+                const container = document.getElementById('inventory-grid');
+                container.innerHTML = State.inventory.map(id => {
+                    const item = GAME_DATA.items[id];
+                    return `
+                        <div class="bg-black/50 border border-[var(--egypt-gold)] rounded flex flex-col items-center justify-center p-2 group hover:bg-[var(--egypt-gold)] transition-colors cursor-help" title="${item.name}">
+                            <svg class="w-8 h-8 text-[var(--egypt-gold)] group-hover:text-black mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">${item.icon}</svg>
+                            <span class="text-[10px] text-center text-gray-300 group-hover:text-black truncate w-full uppercase title-font">${item.name}</span>
+                        </div>
+                    `;
+                }).join('');
+                const emptySlots = 6 - State.inventory.length;
+                for(let i=0; i<emptySlots; i++) container.innerHTML += `<div class="bg-black/20 border border-slate-700 border-dashed rounded"></div>`;
+            },
+            notify(message) {
+                const notif = document.createElement('div');
+                notif.className = "fixed top-20 left-1/2 transform -translate-x-1/2 bg-[var(--egypt-gold)] text-black px-6 py-2 rounded title-font font-bold z-50 animate-slide-up shadow-lg";
+                notif.innerText = message;
+                document.body.appendChild(notif);
+                setTimeout(() => { notif.style.opacity = 0; setTimeout(() => notif.remove(), 500); }, 3000);
+            }
+        };
+
+        const GameApp = {
+            UI: UI, Dialogs: Dialogs, Puzzles: Puzzles, Scenes: Scenes,
+            init() { 
+                FX.init(); 
+                document.getElementById('btn-start').addEventListener('click', () => this.startGame());
+                document.getElementById('btn-codex').addEventListener('click', () => this.UI.toggleCodex());
+                document.getElementById('btn-close-codex').addEventListener('click', () => this.UI.toggleCodex());
+                document.getElementById('dialog-continue').addEventListener('click', () => this.Dialogs.next());
+                document.getElementById('btn-close-puzzle').addEventListener('click', () => this.Puzzles.close());
+            },
+            startGame() {
+                document.getElementById('main-menu').style.display = 'none';
+                document.getElementById('game-ui').style.display = 'flex';
+                
+                AudioFX.init();
+                AudioFX.mystery();
+                this.UI.init();
+                this.Dialogs.init();
+                this.Scenes.load('wall');
+            }
+        };
+
+        // Exposición global estricta
+        window.GameApp = GameApp;
+
+        window.addEventListener('load', () => GameApp.init());
+
+        // Accesibilidad del teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('puzzle-modal').style.display === 'flex') {
+                Puzzles.close();
+            }
+            if (e.key === 'Enter' && document.getElementById('puzzle-modal').style.display === 'flex') {
+                Puzzles.check();
+            }
+        });
+
+    </script>
+</body>
+</html>
